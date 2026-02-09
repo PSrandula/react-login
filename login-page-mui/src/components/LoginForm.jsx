@@ -1,3 +1,4 @@
+// src/components/LoginForm.jsx
 import {
   Box,
   Button,
@@ -13,7 +14,7 @@ import AppleIcon from "@mui/icons-material/Apple";
 import FacebookIcon from "@mui/icons-material/Facebook";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
-import { signInWithPopup } from "firebase/auth";
+import { signInWithPopup, signInWithEmailAndPassword } from "firebase/auth";
 import { auth, googleProvider } from "../firebase/config";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
@@ -25,15 +26,32 @@ const LoginForm = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    setError("");
 
+    // Validate email
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!regex.test(email)) {
       setError("Invalid email format");
       return;
     }
-    setError("");
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+
+    try {
+      // Email & password login
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const token = await userCredential.user.getIdToken();
+      console.log("Logged in user:", userCredential.user);
+      navigate("/token", { state: { token } }); // redirect to token page
+    } catch (err) {
+      console.error("Login failed:", err);
+      setError(err.message); // Show Firebase error message
+    }
   };
 
   const handleGoogleLogin = async () => {
@@ -42,22 +60,9 @@ const LoginForm = () => {
       const token = await result.user.getIdToken();
       navigate("/token", { state: { token } });
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error(err);
+      console.error("Google login failed:", err);
       setError("Google sign-in failed");
     }
-  };
-
-  const handleAppleLogin = () => {
-    // placeholder - implement Apple sign-in if needed
-    // eslint-disable-next-line no-console
-    console.log("Apple login clicked");
-  };
-
-  const handleFacebookLogin = () => {
-    // placeholder - implement Facebook sign-in if needed
-    // eslint-disable-next-line no-console
-    console.log("Facebook login clicked");
   };
 
   const toggleShowPassword = () => setShowPassword((s) => !s);
@@ -70,11 +75,7 @@ const LoginForm = () => {
 
       <Typography color="text.secondary" mb={3}>
         Simplify your workflow and boost productivity <br />
-        with{" "}
-        <Typography component="span" fontWeight={700}>
-          Tuga's App.
-        </Typography>{" "}
-        Get started for free.
+        with <Typography component="span" fontWeight={700}>Tuga's App.</Typography> Get started for free.
       </Typography>
 
       <form onSubmit={handleSubmit}>
@@ -99,7 +100,6 @@ const LoginForm = () => {
             endAdornment: (
               <InputAdornment position="end">
                 <IconButton
-                  aria-label={showPassword ? "Hide password" : "Show password"}
                   onClick={toggleShowPassword}
                   edge="end"
                 >
@@ -129,30 +129,19 @@ const LoginForm = () => {
       <Divider sx={{ my: 3 }}>or continue with</Divider>
 
       <Box display="flex" gap={2} justifyContent="center">
-        <IconButton
-          onClick={handleGoogleLogin}
-          sx={{ bgcolor: "background.paper", border: "1px solid #ddd" }}
-          aria-label="Continue with Google"
-        >
+        <IconButton onClick={handleGoogleLogin}>
           <GoogleIcon />
         </IconButton>
 
-        <IconButton
-          onClick={handleAppleLogin}
-          sx={{ bgcolor: "background.paper", border: "1px solid #ddd" }}
-          aria-label="Continue with Apple"
-        >
+        <IconButton onClick={() => console.log("Apple login clicked")}>
           <AppleIcon />
         </IconButton>
 
-        <IconButton
-          onClick={handleFacebookLogin}
-          sx={{ bgcolor: "background.paper", border: "1px solid #ddd" }}
-          aria-label="Continue with Facebook"
-        >
+        <IconButton onClick={() => console.log("Facebook login clicked")}>
           <FacebookIcon />
         </IconButton>
       </Box>
+
       <Box textAlign="center" mt={2}>
         <Typography variant="body2" color="text.secondary">
           Not a member?{' '}
